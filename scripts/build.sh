@@ -68,7 +68,7 @@ env -i HOME="$WORK" PATH=/usr/bin:/bin bash -c "
 grep -q "toolchain ok" "$WORK/RELOCATION-TEST.txt"
 
 echo "== package"
-{ uname -a; lsb_release -ds 2>/dev/null; ldd --version | head -1; echo "min glibc needed: $(cat "$P/MIN_GLIBC.txt")"; echo "chez $CHEZ_TAG idris2 $IDRIS_TAG"; echo; cat "$WORK/RELOCATION-TEST.txt"; } > "$P/BUILD-INFO.txt"
+{ uname -a; lsb_release -ds 2>/dev/null; ldd --version 2>&1 | sed -n 1p; echo "min glibc needed: $(cat "$P/MIN_GLIBC.txt")"; echo "chez $CHEZ_TAG idris2 $IDRIS_TAG"; echo; cat "$WORK/RELOCATION-TEST.txt"; } > "$P/BUILD-INFO.txt"
 tar -C "$P" -cf - . | xz -9 -T0 > "$OUT/$BUNDLE.tar.xz"
 cp "$P/BUILD-INFO.txt" "$OUT/"
 ( cd "$OUT" && sha256sum "$BUNDLE.tar.xz" > SHA256SUMS && cat SHA256SUMS && ls -la "$BUNDLE.tar.xz" )
