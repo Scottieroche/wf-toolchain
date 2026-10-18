@@ -24,6 +24,7 @@ git clone -q --recurse-submodules --depth 1 --branch "$CHEZ_TAG" https://github.
 "$P/chez/bin/scheme" --version
 
 echo "== Idris2 $IDRIS_TAG"
+export PATH="$P/chez/bin:$PATH"   # the bootstrap idris2.so starts with "#!/usr/bin/env scheme"
 rm -rf "$WORK/Idris2"
 git clone -q --depth 1 --branch "$IDRIS_TAG" https://github.com/idris-lang/Idris2 "$WORK/Idris2"
 ( cd "$WORK/Idris2" && make bootstrap SCHEME="$P/chez/bin/scheme" PREFIX="$P/idris2" -j"$IDRIS_JOBS" >/dev/null && make install SCHEME="$P/chez/bin/scheme" PREFIX="$P/idris2" >/dev/null )
