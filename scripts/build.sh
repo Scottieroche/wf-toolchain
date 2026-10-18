@@ -9,7 +9,9 @@ HERE="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="${OUT:-$HERE/out}"; WORK="${WORK:-/tmp/wfbuild}"; P="$WORK/tools"
 JOBS="$(nproc)"
 IDRIS_JOBS="${IDRIS_JOBS:-1}"   # the Idris2 bootstrap is memory-hungry; -j4 is OOM-killed in 4 GB
-mkdir -p "$OUT" "$WORK"; rm -rf "$P"
+mkdir -p "$OUT" "$WORK"
+# REUSE=1 keeps an already-built $P (iterate on packaging/tests without recompiling)
+if [ "${REUSE:-0}" != 1 ]; then rm -rf "$P"; fi
 
 [ "$(uname -m)" = x86_64 ] || { echo "must run on x86_64 (got $(uname -m))"; exit 1; }
 export DEBIAN_FRONTEND=noninteractive
@@ -17,6 +19,7 @@ SUDO=""; [ "$(id -u)" = 0 ] || SUDO=sudo
 $SUDO apt-get update -qq
 $SUDO apt-get install -y -qq build-essential libgmp-dev libncurses-dev uuid-dev xz-utils git ca-certificates curl python3 binutils lsb-release >/dev/null
 
+if [ -x "$P/idris2/bin/idris2" ] && [ "${REUSE:-0}" = 1 ]; then echo "== REUSE: skipping compile"; export PATH="$P/chez/bin:$PATH"; else
 echo "== Chez $CHEZ_TAG"
 rm -rf "$WORK/ChezScheme"
 git clone -q --recurse-submodules --depth 1 --branch "$CHEZ_TAG" https://github.com/cisco/ChezScheme "$WORK/ChezScheme"
@@ -29,6 +32,8 @@ rm -rf "$WORK/Idris2"
 git clone -q --depth 1 --branch "$IDRIS_TAG" https://github.com/idris-lang/Idris2 "$WORK/Idris2"
 ( cd "$WORK/Idris2" && make bootstrap SCHEME="$P/chez/bin/scheme" PREFIX="$P/idris2" -j"$IDRIS_JOBS" >/dev/null && make install SCHEME="$P/chez/bin/scheme" PREFIX="$P/idris2" >/dev/null )
 
+fi
+
 echo "== relocatable launcher"
 L="$P/idris2/bin/idris2"
 echo "--- launcher before:"; cat "$L"
@@ -36,6 +41,7 @@ head -c 2 "$P/idris2/bin/idris2_app/idris2.so" 2>/dev/null | grep -q '#!' && ech
 python3 - "$L" <<'PY'
 import re, sys
 p = sys.argv[1]; s = open(p).read()
+if '--program "$DIR/idris2_app/idris2.so"' in s: print("already patched"); sys.exit(0)
 s2, n = re.subn(r'(?m)^(\s*(?:exec\s+)?)"\$DIR/idris2_app/idris2\.so"', r'\1"${SCHEME:-scheme}" --program "$DIR/idris2_app/idris2.so"', s)
 if n == 0: sys.exit("launcher line not found: inspect bin/idris2 above")
 open(p, "w").write(s2); print(f"patched {n} line(s)")
