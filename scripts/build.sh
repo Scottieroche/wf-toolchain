@@ -8,6 +8,7 @@ BUNDLE="wf-toolchain-linux-x86_64-chez${CHEZ_TAG#v}-idris2-${IDRIS_TAG#v}"
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="${OUT:-$HERE/out}"; WORK="${WORK:-/tmp/wfbuild}"; P="$WORK/tools"
 JOBS="$(nproc)"
+IDRIS_JOBS="${IDRIS_JOBS:-1}"   # the Idris2 bootstrap is memory-hungry; -j4 is OOM-killed in 4 GB
 mkdir -p "$OUT" "$WORK"; rm -rf "$P"
 
 [ "$(uname -m)" = x86_64 ] || { echo "must run on x86_64 (got $(uname -m))"; exit 1; }
@@ -25,7 +26,7 @@ git clone -q --recurse-submodules --depth 1 --branch "$CHEZ_TAG" https://github.
 echo "== Idris2 $IDRIS_TAG"
 rm -rf "$WORK/Idris2"
 git clone -q --depth 1 --branch "$IDRIS_TAG" https://github.com/idris-lang/Idris2 "$WORK/Idris2"
-( cd "$WORK/Idris2" && make bootstrap SCHEME="$P/chez/bin/scheme" PREFIX="$P/idris2" -j"$JOBS" >/dev/null && make install SCHEME="$P/chez/bin/scheme" PREFIX="$P/idris2" >/dev/null )
+( cd "$WORK/Idris2" && make bootstrap SCHEME="$P/chez/bin/scheme" PREFIX="$P/idris2" -j"$IDRIS_JOBS" >/dev/null && make install SCHEME="$P/chez/bin/scheme" PREFIX="$P/idris2" >/dev/null )
 
 echo "== relocatable launcher"
 L="$P/idris2/bin/idris2"
